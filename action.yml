@@ -1,0 +1,71 @@
+name: 'patchbay MCP audit'
+description: 'Audit an MCP server for OAuth 2.1 and security gaps. 15 checks, letter grade, no backend.'
+author: 'GodSmasher'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  url:
+    description: 'MCP server URL to audit (e.g. https://mcp.example.com/mcp)'
+    required: true
+  fail-on:
+    description: 'Fail the job on this severity or higher: critical, high, medium, low, info'
+    required: false
+    default: 'high'
+  auth:
+    description: 'Bearer token for authenticated MCP servers'
+    required: false
+    default: ''
+  probe-audience:
+    description: 'Bearer token for a DIFFERENT resource on the same AS, to enable the AUDIENCE-001 cross-audience check (RFC 8707)'
+    required: false
+    default: ''
+  probe-dcr-loopback:
+    description: 'Opt into the AUTH-006 active DCR loopback probe (RFC 8252 Section 7.3). Writes to the AS; off by default.'
+    required: false
+    default: 'false'
+  sarif-output:
+    description: 'If set, also write a SARIF report to this path (so you can upload it to GitHub code scanning)'
+    required: false
+    default: ''
+  json-output:
+    description: 'If set, also write a JSON report to this path'
+    required: false
+    default: ''
+  agent-version:
+    description: 'Pin a specific @patchbay-nebius/agent version (e.g. 0.5.0). Defaults to the latest published.'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run patchbay audit
+      shell: bash
+      run: |
+        set -e
+        PKG="@patchbay-nebius/agent"
+        if [ -n "${{ inputs.agent-version }}" ]; then
+          PKG="$PKG@${{ inputs.agent-version }}"
+        fi
+
+        ARGS=("audit" "${{ inputs.url }}" "--ci" "--fail-on=${{ inputs.fail-on }}")
+
+        if [ -n "${{ inputs.auth }}" ]; then
+          ARGS+=("--auth=${{ inputs.auth }}")
+        fi
+        if [ -n "${{ inputs.probe-audience }}" ]; then
+          ARGS+=("--probe-audience=${{ inputs.probe-audience }}")
+        fi
+        if [ "${{ inputs.probe-dcr-loopback }}" = "true" ]; then
+          ARGS+=("--probe-dcr-loopback")
+        fi
+        if [ -n "${{ inputs.json-output }}" ]; then
+          ARGS+=("--json" "--out=${{ inputs.json-output }}")
+        fi
+        if [ -n "${{ inputs.sarif-output }}" ]; then
+          ARGS+=("--sarif" "--out=${{ inputs.sarif-output }}")
+        fi
+
+        npx -y "$PKG" "${ARGS[@]}"

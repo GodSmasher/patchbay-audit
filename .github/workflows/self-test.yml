@@ -1,0 +1,31 @@
+name: self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  audit-known-good:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit a known-clean MCP server
+        uses: ./
+        with:
+          url: https://mcp.deepwiki.com/mcp
+          fail-on: critical
+
+  audit-with-sarif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit with SARIF output
+        uses: ./
+        with:
+          url: https://mcp.deepwiki.com/mcp
+          fail-on: critical
+          sarif-output: patchbay.sarif
+      - name: Verify SARIF produced
+        run: test -s patchbay.sarif && head -1 patchbay.sarif
