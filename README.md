@@ -1,6 +1,6 @@
 # patchbay MCP audit
 
-GitHub Action that audits a Model Context Protocol (MCP) server for OAuth 2.1 and security gaps. 15 checks covering RFC 8707 audience validation, RFC 8252 loopback redirect URIs, OAuth metadata, scope minimisation, secret surface, and tool manifest drift.
+GitHub Action that audits a Model Context Protocol (MCP) server for OAuth 2.1 and security gaps. 16 checks covering RFC 8707 audience validation, RFC 8252 loopback redirect URIs, OAuth metadata, scope minimisation, secret surface, and tool manifest drift.
 
 No backend, no account. Wraps the open-source `@patchbay-nebius/agent` CLI.
 

@@ -1,5 +1,5 @@
 name: 'patchbay MCP audit'
-description: 'Audit an MCP server for OAuth 2.1 and security gaps. 15 checks, letter grade, no backend.'
+description: 'Audit an MCP server for OAuth 2.1 and security gaps. 16 checks, letter grade, no backend.'
 author: 'GodSmasher'
 branding:
   icon: 'shield'
