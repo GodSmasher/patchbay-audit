@@ -1,0 +1,54 @@
+name: demo (live against patchbay demo server)
+
+# Runs this Action against our own intentionally vulnerable demo MCP
+# server on every push and once a day. Dogfoods the Action, catches
+# regressions in @patchbay-nebius/agent, and gives readers a permalink
+# to a real run they can inspect.
+#
+# Expected outcome: job FAILS (demo has 4 critical findings). The
+# job log, uploaded SARIF, and Security tab all show real findings.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * *'  # 06:17 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write  # for SARIF upload
+
+jobs:
+  audit-demo:
+    name: Audit the patchbay demo MCP server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run patchbay audit against demo.patchbay-mcp.dev
+        continue-on-error: true  # the demo is supposed to fail; keep going so SARIF uploads
+        uses: ./
+        with:
+          url: https://demo.patchbay-mcp.dev/mcp
+          probe-headless-oauth: 'true'
+          sarif-output: patchbay-demo.sarif
+          json-output: patchbay-demo.json
+          fail-on: critical
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: patchbay-demo.sarif
+          category: patchbay-demo
+
+      - name: Upload JSON report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: patchbay-demo-report
+          path: |
+            patchbay-demo.sarif
+            patchbay-demo.json
+          retention-days: 30

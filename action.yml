@@ -1,5 +1,5 @@
 name: 'patchbay MCP audit'
-description: 'Audit an MCP server for OAuth 2.1 and security gaps. 16 checks, letter grade, no backend.'
+description: 'Audit an MCP server for OAuth 2.1 and transport security gaps. 25+ checks, letter grade, SARIF for code scanning, no backend.'
 author: 'GodSmasher'
 branding:
   icon: 'shield'
@@ -25,6 +25,14 @@ inputs:
     description: 'Opt into the AUTH-006 active DCR loopback probe (RFC 8252 Section 7.3). Writes to the AS; off by default.'
     required: false
     default: 'false'
+  probe-headless-oauth:
+    description: 'Opt into the headless OAuth conformance battery (PKCE-001, PKCE-002, IMPLICIT-001, REDIRECT-002). Registers a client via DCR and sends four crafted authorize requests. Safe against servers you own; do not run against third-party servers you do not operate.'
+    required: false
+    default: 'false'
+  probe-missing-aud:
+    description: 'Bearer token whose JWT payload has no aud claim, to enable the AUDIENCE-002 missing-audience check. Catches the early-exit bug where aud validation is skipped when the claim is absent.'
+    required: false
+    default: ''
   sarif-output:
     description: 'If set, also write a SARIF report to this path (so you can upload it to GitHub code scanning)'
     required: false
@@ -60,6 +68,12 @@ runs:
         fi
         if [ "${{ inputs.probe-dcr-loopback }}" = "true" ]; then
           ARGS+=("--probe-dcr-loopback")
+        fi
+        if [ "${{ inputs.probe-headless-oauth }}" = "true" ]; then
+          ARGS+=("--probe-headless-oauth")
+        fi
+        if [ -n "${{ inputs.probe-missing-aud }}" ]; then
+          ARGS+=("--probe-missing-aud=${{ inputs.probe-missing-aud }}")
         fi
         if [ -n "${{ inputs.json-output }}" ]; then
           ARGS+=("--json" "--out=${{ inputs.json-output }}")
