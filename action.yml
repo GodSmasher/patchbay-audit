@@ -88,6 +88,21 @@ runs:
         fi
         if [ -n "${{ inputs.sarif-output }}" ]; then
           npx -y "$PKG" "${ARGS[@]}" --sarif --out="${{ inputs.sarif-output }}" --no-cta || true
+
+          # GitHub Code Scanning rejects https:// artifactLocation URIs; it
+          # wants a path under the checkout. Rewrite them to a synthetic
+          # mcp-audit/<host>.txt path so each finding lines up with a stable
+          # pseudo-file in the Security tab.
+          if command -v jq >/dev/null && [ -f "${{ inputs.sarif-output }}" ]; then
+            HOST=$(printf '%s' "${{ inputs.url }}" | sed -E 's#^https?://##; s#/.*##; s#:#_#g')
+            tmp=$(mktemp)
+            jq --arg uri "mcp-audit/${HOST}.txt" '
+              .runs[]?.results[]?.locations[]?.physicalLocation.artifactLocation.uri = $uri
+              | .runs[]?.results[]?.locations[]?.physicalLocation.artifactLocation.uriBaseId = "%SRCROOT%"
+            ' "${{ inputs.sarif-output }}" > "$tmp" && mv "$tmp" "${{ inputs.sarif-output }}"
+            mkdir -p "mcp-audit"
+            printf 'Findings on %s — see patchbay audit output.\n' "${{ inputs.url }}" > "mcp-audit/${HOST}.txt"
+          fi
         fi
 
         # Human-readable run + real exit code
