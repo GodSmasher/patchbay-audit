@@ -75,11 +75,20 @@ runs:
         if [ -n "${{ inputs.probe-missing-aud }}" ]; then
           ARGS+=("--probe-missing-aud=${{ inputs.probe-missing-aud }}")
         fi
+        # If both --json and --sarif outputs are requested, we have to
+        # invoke the agent twice: the CLI's --json and --sarif are mutually
+        # exclusive output modes, and --out can only point at one file.
+        # The last invocation drives the job's exit code (--fail-on); the
+        # earlier side-outputs use --no-cta to stay quiet and pass through.
+
+        FINAL_ARGS=("${ARGS[@]}")
+
         if [ -n "${{ inputs.json-output }}" ]; then
-          ARGS+=("--json" "--out=${{ inputs.json-output }}")
+          npx -y "$PKG" "${ARGS[@]}" --json --out="${{ inputs.json-output }}" --no-cta || true
         fi
         if [ -n "${{ inputs.sarif-output }}" ]; then
-          ARGS+=("--sarif" "--out=${{ inputs.sarif-output }}")
+          npx -y "$PKG" "${ARGS[@]}" --sarif --out="${{ inputs.sarif-output }}" --no-cta || true
         fi
 
-        npx -y "$PKG" "${ARGS[@]}"
+        # Human-readable run + real exit code
+        npx -y "$PKG" "${FINAL_ARGS[@]}"
